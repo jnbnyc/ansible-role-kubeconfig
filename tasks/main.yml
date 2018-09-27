@@ -1,0 +1,14 @@
+---
+
+- name: kubeconfig | determine if you have already provided the kubeconfig
+  stat:
+    path: ~/.kube/config
+  register: cfg
+
+- name: kubeconfig | create kubeconfig
+  include: create-config.yml
+  when: not cfg.stat.exists
+
+- name: kubeconfig | kubeconfig provided
+  include: use-config.yml
+  when: cfg.stat.exists

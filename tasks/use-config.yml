@@ -1,0 +1,31 @@
+---
+# get the ca from the kubeconfig
+
+- name: kube_config | Include vars into the 'kubeconfig' variable
+  include_vars:
+    file: ~/.kube/config
+    name: kubeconfig
+  # set_fact:
+  #    kubeconfig: "{{ lookup('file', '~/.kube/config') | from_yaml }}"
+
+- name: kube_config | trust the certificate authority
+  copy:
+    content: "{{ item.cluster['certificate-authority-data'] | b64decode }}"
+    dest: /usr/local/share/ca-certificates/ca-{{ item.name }}.crt
+  register: ca_b64
+  when: item.cluster['certificate-authority-data'] is defined
+  loop: "{{ kubeconfig['clusters'] }}"
+
+- name: kube_config | trust the certificate authority
+  copy:
+    src: "{{ item.cluster['certificate-authority'] }}"
+    dest: /usr/local/share/ca-certificates/ca-{{ item.name }}.crt
+  register: ca_file
+  when: item.cluster['certificate-authority'] is defined
+  loop: "{{ kubeconfig['clusters'] }}"
+
+- debug: var=ca verbosity=2
+
+- name: kube_config | update trusted certificates
+  command: update-ca-certificates
+  when: ca_b64.changed or ca_file.changed

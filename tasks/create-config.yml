@@ -1,0 +1,33 @@
+---
+
+- name: kube_config | ensure ~/.kube directory
+  file:
+    path: ~/.kube
+    state: directory
+    owner: root
+    mode: 755
+
+- name: kube_config | write kubeconfig file
+  template:
+    src: kubeconfig.yml.j2
+    dest: ~/.kube/config
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0600
+
+- name: kube_config | trust the certificate authority
+  copy:
+    content: "{{ kubernetes_certificate_authority_data }}"
+    dest: /usr/local/share/ca-certificates/ca-{{ subdomain }}.crt
+  register: ca
+
+- debug: var=ca verbosity=2
+
+- name: kube_config | update trusted certificates
+  command: update-ca-certificates
+  when: ca.changed
+
+# - name: kube_config |
+#   copy:
+#     content: "{{ kubeconfig }}"
+#     dest: /root/.kube/config
